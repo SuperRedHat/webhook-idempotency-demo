@@ -1,0 +1,15 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pytest==9.0.3
+      - name: Invariant tests (exactly-once effect, crash-resume, HMAC/DLQ)
+        run: python -m pytest -q
+      - name: End-to-end chaos demo must prove exactly-once
+        run: python demo.py

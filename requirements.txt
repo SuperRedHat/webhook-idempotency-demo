@@ -1,0 +1,5 @@
+# Core engine, demo and tests need NO third-party packages (stdlib sqlite3).
+# These are only for the OPTIONAL live HTTP receiver (app.py) and the test run.
+pytest==9.0.3
+fastapi==0.115.6
+uvicorn==0.34.0
