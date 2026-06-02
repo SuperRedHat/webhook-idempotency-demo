@@ -1,5 +1,7 @@
 # webhook-idempotency-demo — exactly-once *effect* from at-least-once webhooks
 
+[![CI](https://github.com/SuperRedHat/webhook-idempotency-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/SuperRedHat/webhook-idempotency-demo/actions/workflows/ci.yml)
+
 A small, runnable proof that webhook side-effects (charging, fulfilling,
 syncing a CRM) happen **exactly once** even though the provider delivers
 **at-least-once**, out of order, with retries — and even when the worker
