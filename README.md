@@ -86,11 +86,39 @@ the same stream. That gap is the bug this design removes.
 - `test_forged_signature_is_dead_lettered_not_processed`, `test_malformed_payload…`
   — bad input never reaches the effect.
 - `test_naive_handler_would_double_credit` — proves the suite isn't vacuous.
+- `tests/test_dual_trigger.py` — **webhook + polling fallback both confirm the
+  same transfer ⇒ one disbursement.** See below.
 
 **Planted-regression guard:** remove the inbox dedup *and* the ledger
 idempotency key and `test_each_event_credited_exactly_once` goes red (verified:
 the ledger balloons to 140 rows for 50 events). CI (`.github/workflows/ci.yml`)
 runs the suite on every push.
+
+---
+
+## Dual-trigger: webhook + polling fallback, one payout
+
+Real payment flows never trust the webhook alone — there is always a polling
+fallback for the day the webhook is delayed, dropped, or arrives *and* the
+poller runs anyway. That turns "don't process duplicates" into a harder race:
+**two different ingestion paths, two different delivery identities, one
+real-world fact.**
+
+Keying dedup on the webhook's event id cannot work — the poller never sees
+that id. The pattern demonstrated in `tests/test_dual_trigger.py`:
+
+1. **Normalize first.** Both paths reduce their observation to the same
+   canonical state-transition key: `{txn_id}:transfer.completed`. The poller
+   doesn't need webhook ids; it only names the provider state it saw, and the
+   name is deterministic.
+2. **One write path.** Webhook handler and poller write through the same
+   inbox; the `PRIMARY KEY` on the canonical key absorbs whichever path loses
+   the race — even when the two observations carry different payload bytes
+   (each stamps its own clock), because dedup is on the key, not a payload hash.
+3. **Effect-layer second lock.** The downstream effect (payout/disbursement)
+   is additionally keyed in the ledger, so a worker crash + restart + poll
+   re-trigger *stacked on top of* the race still produces exactly one payout
+   (`test_poll_retrigger_after_crash_still_once`).
 
 ---
 
